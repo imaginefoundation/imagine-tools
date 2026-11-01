@@ -3,4 +3,7 @@ name = "isobuilder"
 version = "0.1.0"
 edition = "2024"
 
+# Ferramenta de host: workspace próprio, fora do workspace do ImagineOS.
+[workspace]
+
 [dependencies]
