@@ -61,15 +61,16 @@ LIMINE_DIR = ROOT / "imagine-base" / "config" / "boot"
 BOOT_DIR = ROOT / "boot"
 
 # --- Diretórios de origem reorganizados por submódulo -------------------------
-# imagine-base: utilitários e arquivos compartilhados (ABI, API, libc, runtimes)
+# imagine-base: infraestrutura principal (ABI, API, libc, runtimes, config, gui)
 COMMON_DIR = ROOT / "imagine-base"
 RAMFS_ROOT = COMMON_DIR / "ramfs"
 RAMFS_DIRS = ["bin", "dev", "etc", "sbin", "home", "system/fonts", "system/install", "tmp", "usr"]
 
-# Programas compartilhados (init) vivem em imagine-base/programs/
-PROGRAMS_DIR = COMMON_DIR / "programs"
+# Programas compartilhados (init, getty) vivem em imagine-common/programs/
+COMMON_LEGACY_DIR = ROOT / "imagine-common"
+PROGRAMS_DIR = COMMON_LEGACY_DIR / "programs"
 
-# Libc e API vivem em imagine-base/
+# Libc e API vivem em imagine-base/userland/
 USERLAND_DIR = COMMON_DIR / "userland"
 USER_API_DIR = USERLAND_DIR / "api"
 USER_API_TARGET = BUILD_DIR / "user" / "api-target"
@@ -78,13 +79,17 @@ USER_RUNTIME_TARGET = BUILD_DIR / "user" / "runtime-target"
 USER_CRT_DIR = USERLAND_DIR / "runtimes" / "ImagineCRuntime"
 USER_CRT_TARGET = BUILD_DIR / "user" / "crt-target"
 USER_LIBC_DIR = COMMON_DIR / "libc"
-LINKER_LD = COMMON_DIR / "userland" / "linker.ld"
+LINKER_LD = USERLAND_DIR / "linker.ld"
 ABI_DIR = COMMON_DIR / "abi"
 
-# imagine-tools: programas específicos e ferramentas (shell, liminal, utilities)
+# Shell e systemfetch vivem em imagine-common/
+SHELL_DIR = COMMON_LEGACY_DIR / "shell"
+SYSTEMFETCH_DIR = COMMON_LEGACY_DIR / "systemfetch"
+
+# imagine-tools: ferramentas de host e utilitários C/Rust
 TOOLS_DIR = ROOT / "imagine-tools"
-UTILITIES_DIR = TOOLS_DIR / "utilities"
-PROGRAMS_SHELL_DIR = TOOLS_DIR / "programs" / "shell"
+UTILITIES_DIR = COMMON_LEGACY_DIR / "utilities"
+PROGRAMS_SHELL_DIR = SHELL_DIR
 PROGRAMS_LIMINAL_SERVER_DIR = TOOLS_DIR / "programs" / "liminalServer"
 PROGRAMS_LIMINAL_CLIENT_DIR = TOOLS_DIR / "programs" / "liminalClient"
 BUILD_SCRIPTS_DIR = TOOLS_DIR / "build"

@@ -42,7 +42,15 @@ def build_iso() -> Path:
     require_tool("mmd", "apt install mtools")
     require_tool("mcopy", "apt install mtools")
 
+    # Primeiro compila o kernel e as ferramentas de host (dnu-pack, etc.)
+    # porque o userland precisa do dnu-pack para empacotar os programas DEF.
+    kernel.build_kernel()
+    kernel.build_tools()
+
+    # Depois monta a árvore do ramfs (que compila o userland com dnu-pack disponível)
     tree = ramfs.build_tree()
+
+    # Finalmente empacota kernel + initramfs no dzImage
     dzimage = kernel.build_dzimage(tree)
     isobuilder = build_isobuilder()
 

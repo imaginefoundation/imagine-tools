@@ -21,8 +21,8 @@ import textwrap
 from pathlib import Path
 
 from .common import (
-    BUILD_DIR, DNU_PACK_BIN, LINKER_LD, PROGRAMS_DIR, ROOT, TARGET,
-    USER_API_DIR, USER_API_TARGET, USER_C_UTILITIES, USER_DIR,
+    BUILD_DIR, COMMON_LEGACY_DIR, DNU_PACK_BIN, LINKER_LD, PROGRAMS_DIR, ROOT, TARGET,
+    TOOLS_DIR, USER_API_DIR, USER_API_TARGET, USER_C_UTILITIES, USER_DIR,
     USER_LIBC_DIR, USER_RUNTIME_DIR, USER_RUNTIME_TARGET, USER_UTILITIES,
     PROGRAMS_SHELL_DIR, PROGRAMS_LIMINAL_SERVER_DIR, PROGRAMS_LIMINAL_CLIENT_DIR,
     cargo, fail, require_nightly, require_rust_target, require_tool,
@@ -170,7 +170,11 @@ def build_rust_utilities() -> list[Path]:
 
 
 def UTILITIES_SRC(name: str) -> Path:
-    return ROOT / "imagine-tools" / "utilities" / f"{name}.rs"
+    # Primeiro procura em imagine-common/utilities/, depois em imagine-tools/utilities/
+    src = COMMON_LEGACY_DIR / "utilities" / f"{name}.rs"
+    if src.exists():
+        return src
+    return TOOLS_DIR / "utilities" / f"{name}.rs"
 
 
 def compile_libc() -> list[Path]:
@@ -236,9 +240,11 @@ def build_c_utility(name: str) -> Path:
     require_tool("cc", "instale um compilador C (ex.: apt install gcc)")
     require_tool("ar", "instale binutils (apt install binutils)")
     compile_libc()
-    source = ROOT / "imagine-tools" / "utilities" / f"{name}.c"
+    source = COMMON_LEGACY_DIR / "utilities" / f"{name}.c"
     if not source.exists():
-        fail(f"fonte C do utilitário ausente: {source}")
+        source = TOOLS_DIR / "utilities" / f"{name}.c"
+    if not source.exists():
+        fail(f"fonte C do utilitário ausente: {name}.c")
     include_dir = USER_LIBC_DIR / "include"
     obj_dir = USER_DIR / "c"
     obj_dir.mkdir(parents=True, exist_ok=True)
