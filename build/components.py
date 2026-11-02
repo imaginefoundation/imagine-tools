@@ -12,28 +12,24 @@ Componentes em migração (stub compilável mantendo o contrato `_start`):
   * imagine-compositor   -> /bin/liminal-client
   * imagine-desktop      -> /bin/ede-panel
 
-Programas locais em imagine-tools/programs/ (movidos de common/programs/):
+Programas locais em imagine-base/shell/ (movidos de common/programs/):
   * shell        -> /bin/shell
-  * liminalServer -> /bin/liminal-server
-  * liminalClient -> /bin/liminal-client
 """
 from __future__ import annotations
 
 from pathlib import Path
 
 from .common import (
-    COMPONENT_BINARIES, DNU_PACK_BIN, PROGRAMS_SHELL_DIR,
-    PROGRAMS_LIMINAL_SERVER_DIR, PROGRAMS_LIMINAL_CLIENT_DIR, ROOT, TARGET,
+    COMPONENT_BINARIES, DNU_PACK_BIN, PROGRAMS_SHELL_DIR, ROOT, TARGET,
     USER_DIR, cargo, fail, require_nightly, require_rust_target, run, tree_newer,
 )
 from . import userland
 
-# Programas locais em imagine-tools/programs/ com seus nomes instalados
-LOCAL_PROGRAMS = {
-    "shell": (PROGRAMS_SHELL_DIR, "shell"),
-    "liminalServer": (PROGRAMS_LIMINAL_SERVER_DIR, "liminal-server"),
-    "liminalClient": (PROGRAMS_LIMINAL_CLIENT_DIR, "liminal-client"),
-}
+# Programas locais em imagine-base/shell/ com seus nomes instalados
+LOCAL_PROGRAMS = {}
+if PROGRAMS_SHELL_DIR and PROGRAMS_SHELL_DIR.exists():
+    LOCAL_PROGRAMS["shell"] = (PROGRAMS_SHELL_DIR, "shell")
+# liminalServer e liminalClient foram removidos (não existem mais)
 
 
 def build_component(name: str) -> Path:
@@ -72,10 +68,11 @@ def build_component(name: str) -> Path:
 
 
 def build_local_program(name: str) -> Path:
-    """Compila um programa local em imagine-tools/programs/ e empacota em DEF.
+    """Compila um programa local em imagine-base/shell/ e empacota em DEF.
 
     Devolve o caminho do arquivo DEF (sem extensão), pronto para /bin.
-    Usa a mesma abordagem de _gen_crate do userland.py (manifest temporário).
+    Usa a mesma abordagem de _gen_crate do userland
+    para criar um manifest temporário e compilar.
     """
     source_dir, install_name = LOCAL_PROGRAMS[name]
     require_nightly()
@@ -83,14 +80,12 @@ def build_local_program(name: str) -> Path:
 
     # O programa não tem Cargo.toml próprio; usamos o _gen_crate do userland
     # para criar um manifest temporário e compilar.
-    elf = USER_DIR / f"{install_name}.elf" if False else None
-    # Determina o crate_name (substitui hífens por underscores)
-    crate_name = install_name.replace("-", "_")
-    out_elf = ROOT / ".build" / "user" / "bin" / f"{install_name}.elf"
+    elf = USER_DIR / f"{install_name}.elf"
+    out_elf = ROOT / ".build" / "user" / "gen-target" / TARGET / "release" / install_name
     out_def = ROOT / ".build" / "user" / "bin" / install_name
 
     if tree_newer(source_dir, out_elf) or not out_def.exists():
-        userland.compile_rust_program(source_dir, crate_name, out_elf)
+        userland.compile_rust_program(source_dir, install_name.replace("-", "_"), out_elf)
         userland.pack_def(out_elf, out_def)
 
     return out_def

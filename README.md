@@ -1,2 +1,3 @@
 # Build Tools for ImagineOS
-- This repo contains things related to ImagineOS build process
+
+Este repositório contém ferramentas de build e utilitários de host para o ImagineOS.

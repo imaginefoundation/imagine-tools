@@ -220,11 +220,13 @@ def build_main_programs() -> dict[str, Path]:
             compile_rust_program(source, name, elf)
             pack_def(elf, target)
         results[name] = target
-    multi_module_apps = [
-        (PROGRAMS_SHELL_DIR, "bin", "shell"),
-        (PROGRAMS_LIMINAL_SERVER_DIR, "bin", "liminal-server"),
-        (PROGRAMS_LIMINAL_CLIENT_DIR, "bin", "liminal-client"),
-    ]
+    multi_module_apps = []
+    if PROGRAMS_SHELL_DIR and PROGRAMS_SHELL_DIR.exists():
+        multi_module_apps.append((PROGRAMS_SHELL_DIR, "bin", "shell"))
+    if PROGRAMS_LIMINAL_SERVER_DIR and PROGRAMS_LIMINAL_SERVER_DIR.exists():
+        multi_module_apps.append((PROGRAMS_LIMINAL_SERVER_DIR, "bin", "liminal-server"))
+    if PROGRAMS_LIMINAL_CLIENT_DIR and PROGRAMS_LIMINAL_CLIENT_DIR.exists():
+        multi_module_apps.append((PROGRAMS_LIMINAL_CLIENT_DIR, "bin", "liminal-client"))
     for source_dir, subdir, name in multi_module_apps:
         elf = USER_DIR / subdir / f"{name}.elf"
         target = USER_DIR / subdir / name

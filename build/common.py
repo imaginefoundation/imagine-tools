@@ -70,6 +70,9 @@ RAMFS_DIRS = ["bin", "dev", "etc", "sbin", "home", "system/fonts", "system/insta
 COMMON_LEGACY_DIR = ROOT / "imagine-common"
 PROGRAMS_DIR = COMMON_LEGACY_DIR / "programs"
 
+# Shell vive em imagine-base/shell/
+SHELL_DIR = COMMON_DIR / "shell"
+
 # Libc e API vivem em imagine-base/userland/
 USERLAND_DIR = COMMON_DIR / "userland"
 USER_API_DIR = USERLAND_DIR / "api"
@@ -82,16 +85,13 @@ USER_LIBC_DIR = COMMON_DIR / "libc"
 LINKER_LD = USERLAND_DIR / "linker.ld"
 ABI_DIR = COMMON_DIR / "abi"
 
-# Shell e systemfetch vivem em imagine-common/
-SHELL_DIR = COMMON_LEGACY_DIR / "shell"
-SYSTEMFETCH_DIR = COMMON_LEGACY_DIR / "systemfetch"
-
 # imagine-tools: ferramentas de host e utilitários C/Rust
 TOOLS_DIR = ROOT / "imagine-tools"
 UTILITIES_DIR = COMMON_LEGACY_DIR / "utilities"
 PROGRAMS_SHELL_DIR = SHELL_DIR
-PROGRAMS_LIMINAL_SERVER_DIR = TOOLS_DIR / "programs" / "liminalServer"
-PROGRAMS_LIMINAL_CLIENT_DIR = TOOLS_DIR / "programs" / "liminalClient"
+# liminal_server e liminal_client foram removidos (não existem mais)
+PROGRAMS_LIMINAL_SERVER_DIR = None
+PROGRAMS_LIMINAL_CLIENT_DIR = None
 BUILD_SCRIPTS_DIR = TOOLS_DIR / "build"
 
 USER_UTILITIES = [
