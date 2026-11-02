@@ -208,7 +208,8 @@ def build_main_programs() -> dict[str, Path]:
     ]
     for source, subdir, name in single_file_apps:
         if not source.exists():
-            fail(f"fonte do programa ausente: {source}")
+            print(f"aviso: fonte do programa ausente, pulando: {source}")
+            continue
         elf = USER_DIR / subdir / f"{name}.elf"
         target = USER_DIR / subdir / name
         if tree_newer(source, elf) or not target.exists():

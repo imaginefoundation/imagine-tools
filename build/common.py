@@ -56,20 +56,20 @@ ISO_IMAGE = DISTRO_DIR / f"{K_NAME}-{time.strftime('%Y-%m-%d-%H-%M')}-{CODENAME}
 DISK_IMAGE = BUILD_DIR / "imagineos-disk.img"
 INSTALL_TARGET = BUILD_DIR / "installer-target.img"
 
-# Bootloader (submódulo imagine-bootloader)
-LIMINE_DIR = ROOT / "imagine-bootloader"
+# Bootloader (submódulo imagine-bootloader ou imagine-base/config/boot/)
+LIMINE_DIR = ROOT / "imagine-base" / "config" / "boot"
 BOOT_DIR = ROOT / "boot"
 
 # --- Diretórios de origem reorganizados por submódulo -------------------------
-# imagine-common: utilitários e arquivos compartilhados (ABI, API, libc, runtimes)
-COMMON_DIR = ROOT / "imagine-common"
+# imagine-base: utilitários e arquivos compartilhados (ABI, API, libc, runtimes)
+COMMON_DIR = ROOT / "imagine-base"
 RAMFS_ROOT = COMMON_DIR / "ramfs"
 RAMFS_DIRS = ["bin", "dev", "etc", "sbin", "home", "system/fonts", "system/install", "tmp", "usr"]
 
-# Programas compartilhados (init, getty) vivem em imagine-common/programs/
+# Programas compartilhados (init) vivem em imagine-base/programs/
 PROGRAMS_DIR = COMMON_DIR / "programs"
 
-# Libc e API vivem em imagine-common/
+# Libc e API vivem em imagine-base/
 USERLAND_DIR = COMMON_DIR / "userland"
 USER_API_DIR = USERLAND_DIR / "api"
 USER_API_TARGET = BUILD_DIR / "user" / "api-target"
@@ -78,7 +78,7 @@ USER_RUNTIME_TARGET = BUILD_DIR / "user" / "runtime-target"
 USER_CRT_DIR = USERLAND_DIR / "runtimes" / "ImagineCRuntime"
 USER_CRT_TARGET = BUILD_DIR / "user" / "crt-target"
 USER_LIBC_DIR = COMMON_DIR / "libc"
-LINKER_LD = COMMON_DIR / "linker.ld"
+LINKER_LD = COMMON_DIR / "userland" / "linker.ld"
 ABI_DIR = COMMON_DIR / "abi"
 
 # imagine-tools: programas específicos e ferramentas (shell, liminal, utilities)

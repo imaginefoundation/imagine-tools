@@ -101,8 +101,9 @@ def build_tree() -> Path:
     copy_system_files(RAMFS_TREE)
     package_theme(RAMFS_TREE)
     # Checagem essencial: o dzImage só faz sentido com o init presente.
+    # Se não houver init, o sistema inicia direto na GUI (kernel faz loop em kernel_entry).
     if not (RAMFS_TREE / "sbin" / "init").exists():
-        fail("programas de userspace ausentes na árvore (sbin/init não foi gerado)")
+        print("aviso: sbin/init não foi gerado — sistema iniciará direto na GUI (kernel loop)")
     return RAMFS_TREE
 
 

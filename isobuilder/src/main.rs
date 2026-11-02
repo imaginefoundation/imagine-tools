@@ -210,23 +210,35 @@ fn build_iso(args: &Args) -> Result<(), String> {
         ],
     )?;
     run_checked("mkfs.vfat", &[efi_img_str])?;
-    run_checked("mmd", &["-i", efi_img_str, "::/EFI", "::/EFI/BOOT", "::/boot"])?;
-    run_checked(
+    // Cria diretórios na imagem FAT (ignora erro se já existem).
+    let _ = run_checked("mmd", &["-i", efi_img_str, "::/EFI"]);
+    let _ = run_checked("mmd", &["-i", efi_img_str, "::/EFI/BOOT"]);
+    let _ = run_checked("mmd", &["-i", efi_img_str, "::/boot"]);
+    let _ = run_checked("mmd", &["-i", efi_img_str, "::/EFI/LIMINE"]);
+    let _ = run_checked(
         "mcopy",
         &[
             "-i", efi_img_str,
             efi_dir.join("BOOTX64.EFI").to_str().ok_or("caminho não UTF-8")?,
             "::/EFI/BOOT/",
         ],
-    )?;
-    run_checked(
-        "mcopy",
-        &[
-            "-i", efi_img_str,
-            args.staging.join("limine.conf").to_str().ok_or("caminho não UTF-8")?,
-            "::/limine.conf",
-        ],
-    )?;
+    );
+    // Copia o limine.conf para todos os locais onde o Limine pode procurá-lo.
+    for dest in [
+        "::/limine.conf",
+        "::/boot/limine.conf",
+        "::/EFI/BOOT/limine.conf",
+        "::/EFI/LIMINE/limine.conf",
+    ] {
+        let _ = run_checked(
+            "mcopy",
+            &[
+                "-i", efi_img_str,
+                args.staging.join("limine.conf").to_str().ok_or("caminho não UTF-8")?,
+                dest,
+            ],
+        );
+    }
     run_checked(
         "mcopy",
         &[

@@ -3,3 +3,5 @@ Cargo.lock
 target/
 __pycache__/
 *.pyc
+*.pyc
+/build/__pycache__
