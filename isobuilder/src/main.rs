@@ -32,6 +32,8 @@ struct Args {
     output: PathBuf,
     staging: PathBuf,
     kernel: Option<PathBuf>,
+    initrd: Option<PathBuf>,
+    filesystem_tar: Option<PathBuf>,
 }
 
 fn parse_args() -> Result<Args, String> {
@@ -41,6 +43,8 @@ fn parse_args() -> Result<Args, String> {
     let mut output = None;
     let mut staging = None;
     let mut kernel = None;
+    let mut initrd: Option<PathBuf> = None;
+    let mut filesystem_tar: Option<PathBuf> = None;
     let mut iter = std::env::args().skip(1);
     while let Some(arg) = iter.next() {
         let mut take = |slot: &mut Option<PathBuf>, name: &str| -> Result<(), String> {
@@ -57,6 +61,8 @@ fn parse_args() -> Result<Args, String> {
             "--output" => take(&mut output, "output")?,
             "--staging" => take(&mut staging, "staging")?,
             "--kernel" => take(&mut kernel, "kernel")?,
+            "--initrd" => take(&mut initrd, "initrd")?,
+            "--filesystem-tar" => take(&mut filesystem_tar, "filesystem-tar")?,
             "--help" | "-h" => {
                 print_usage();
                 std::process::exit(0);
@@ -75,21 +81,35 @@ fn parse_args() -> Result<Args, String> {
             tmp
         }),
         kernel,
+        initrd,
+        filesystem_tar,
     })
 }
 
 fn print_usage() {
     println!(
-        "uso: isobuilder --dzimage <dzImage> --bootloader <BOOTX64.EFI> --config <limine.conf> --output <arquivo.iso> [--staging <dir>]"
+        "uso: isobuilder --dzimage <dzImage> --bootloader <BOOTX64.EFI> --config <limine.conf> --output <arquivo.iso> [--staging <dir>] [--initrd <initrd>] [--filesystem-tar <filesystem.tar>]"
     );
 }
 
 fn check_inputs(args: &Args) -> Result<(), String> {
-    for (role, path) in [
+    let required: Vec<(&str, &Path)> = vec![
         ("dzImage", &args.dzimage),
         ("bootloader", &args.bootloader),
         ("config", &args.config),
-    ] {
+    ];
+    for (role, path) in &required {
+        if !path.is_file() {
+            return Err(format!("{role} não encontrado: {}", path.display()));
+        }
+    }
+    // initrd e filesystem-tar são obrigatórios quando informados via CLI
+    // (o iso.py sempre os passa).
+    for (role, opt) in [("initrd", &args.initrd), ("filesystem-tar", &args.filesystem_tar)] {
+        let path = match opt {
+            Some(p) => p,
+            None => return Err(format!("{role} não informado")),
+        };
         if !path.is_file() {
             return Err(format!("{role} não encontrado: {}", path.display()));
         }
@@ -190,13 +210,20 @@ fn build_iso(args: &Args) -> Result<(), String> {
         }
     };
     std::fs::copy(&kernel, boot_dir.join("kernel.elf")).map_err(|e| e.to_string())?;
+    std::fs::copy(args.initrd.as_deref().unwrap(), boot_dir.join("initrd"))
+        .map_err(|e| e.to_string())?;
+    std::fs::copy(
+        args.filesystem_tar.as_deref().unwrap(),
+        boot_dir.join("filesystem.tar"),
+    )
+    .map_err(|e| e.to_string())?;
 
     // Dimensiona a imagem FAT do ESP com folga para os payloads de boot
     // (BOOTX64.EFI + dzImage + kernel.elf), em vez de um tamanho fixo.
     let payload_bytes = file_size(&args.bootloader)
         + file_size(&args.dzimage)
         + file_size(&kernel);
-    let mib = 1024 * 1024;
+    let mib: u64 = 1024 * 1024;
     let blocks = (payload_bytes + mib - 1) / mib + 16;
     let efi_img = args.staging.join("efi.img");
     let efi_img_str = efi_img.to_str().ok_or("caminho do ESP não é UTF-8")?;
@@ -255,9 +282,28 @@ fn build_iso(args: &Args) -> Result<(), String> {
             "::/boot/",
         ],
     )?;
+    // O initrd e o filesystem.tar também devem estar na ESP (imagem FAT)
+    // para que o kernel possa carregá-los durante o boot, ao lado do dzImage.
+    run_checked(
+        "mcopy",
+        &[
+            "-i", efi_img_str,
+            boot_dir.join("initrd").to_str().ok_or("caminho não UTF-8")?,
+            "::/boot/",
+        ],
+    )?;
+    run_checked(
+        "mcopy",
+        &[
+            "-i", efi_img_str,
+            boot_dir.join("filesystem.tar").to_str().ok_or("caminho não UTF-8")?,
+            "::/boot/",
+        ],
+    )?;
 
     // xorriso produz ISO 9660 com Rock Ridge (-R), Joliet (-J) e El Torito
-    // (--efi-boot-part), exatamente o combo que distribuições Linux usam.
+    // (--efi-boot + -no-emul-boot), exatamente o combo que distribuições
+    // Linux usam para ISO inicializável por UEFI.
     let staging = args.staging.to_str().ok_or("caminho do staging não é UTF-8")?;
     run_checked(
         "xorriso",
@@ -266,7 +312,7 @@ fn build_iso(args: &Args) -> Result<(), String> {
             "-R", "-J",
             "-V", VOLUME_ID,
             "--efi-boot", "efi.img",
-            "-efi-boot-part", "--efi-boot-image",
+            "-no-emul-boot",
             "--protective-msdos-label",
             staging,
             "-o",

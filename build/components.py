@@ -12,7 +12,7 @@ Componentes em migração (stub compilável mantendo o contrato `_start`):
   * imagine-compositor   -> /bin/liminal-client
   * imagine-desktop      -> /bin/ede-panel
 
-Programas locais em imagine-base/shell/ (movidos de common/programs/):
+Programas locais em imagine-common/console/ (movidos de common/programs/):
   * shell        -> /bin/shell
 """
 from __future__ import annotations
@@ -25,7 +25,7 @@ from .common import (
 )
 from . import userland
 
-# Programas locais em imagine-base/shell/ com seus nomes instalados
+# Programas locais em imagine-common/console/ com seus nomes instalados
 LOCAL_PROGRAMS = {}
 if PROGRAMS_SHELL_DIR and PROGRAMS_SHELL_DIR.exists():
     LOCAL_PROGRAMS["shell"] = (PROGRAMS_SHELL_DIR, "shell")
@@ -68,7 +68,7 @@ def build_component(name: str) -> Path:
 
 
 def build_local_program(name: str) -> Path:
-    """Compila um programa local em imagine-base/shell/ e empacota em DEF.
+    """Compila um programa local em imagine-common/console/ e empacota em DEF.
 
     Devolve o caminho do arquivo DEF (sem extensão), pronto para /bin.
     Usa a mesma abordagem de _gen_crate do userland

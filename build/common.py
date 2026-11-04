@@ -33,9 +33,11 @@ DISTRO_DIR = BUILD_DIR / "distro"
 DNU_DIR = ROOT / "dnu"
 DNU_BUILD = DNU_DIR / ".build"
 DZ_IMAGE = BUILD_DIR / "dzImage"
-DNU_PACK_BIN = DNU_BUILD / "dnu-pack"
-DNULINK_BIN = DNU_BUILD / "dnulink"
-DFS_IMAGE_BIN = DNU_BUILD / "dfs-image"
+DZIMAGE_BIN = DNU_BUILD / "tools" / "dzimage"
+DNUDEBUG_BIN = DNU_BUILD / "tools" / "dnudebug"
+DNUTEST_BIN = DNU_BUILD / "tools" / "dnutest"
+DNUBOOT_BIN = DNU_BUILD / "tools" / "dnuboot"
+DNU_PACK_BIN = DNU_BUILD / "tools" / "dnu_pack"
 
 # Árvore montada que o DNU empacota no initramfs (RAMFS_DIR para o DNU).
 RAMFS_TREE = BUILD_DIR / "ramfs"
@@ -70,8 +72,8 @@ RAMFS_DIRS = ["bin", "dev", "etc", "sbin", "home", "system/fonts", "system/insta
 COMMON_LEGACY_DIR = ROOT / "imagine-common"
 PROGRAMS_DIR = COMMON_LEGACY_DIR / "programs"
 
-# Shell vive em imagine-base/shell/
-SHELL_DIR = COMMON_DIR / "shell"
+# Shell (console) vive em imagine-common/console/
+SHELL_DIR = COMMON_LEGACY_DIR / "console"
 
 # Libc e API vivem em imagine-base/userland/
 USERLAND_DIR = COMMON_DIR / "userland"

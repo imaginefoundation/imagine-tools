@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """build/iso.py — monta a ISO inicializável com o isobuilder (imagine-tools).
 
-Orquestra as etapas anteriores (userland -> ramfs -> dzImage) e chama a
-ferramenta `isobuilder` do submódulo `imagine-tools`, que produz a imagem El
-Torito UEFI com o dzImage + Limine. O dzImage é o único artefato de boot.
+Orquestra as etapas anteriores (kernel, ramfs, dzImage) e chama a
+ferramenta `isobuilder` do submódulo `imagine-tools`, que produz a imagem
+El Torito UEFI com o dzImage + Limine.
+
+O dzImage contém APENAS o kernel ELF. O initrd e o filesystem.tar são
+arquivos separados incluídos na ISO.
 """
 from __future__ import annotations
 
@@ -13,8 +16,8 @@ from pathlib import Path
 
 from . import kernel, ramfs
 from .common import (
-    BOOT_DIR, DZ_IMAGE, ISO_DIR, ISO_IMAGE, LIMINE_DIR, ROOT, cargo, fail,
-    require_tool, run, tree_newer,
+    BOOT_DIR, BUILD_DIR, DNU_DIR, DZ_IMAGE, DZIMAGE_BIN, ISO_DIR, ISO_IMAGE, LIMINE_DIR, ROOT, TARGET,
+    cargo, fail, require_tool, run, tree_newer,
 )
 
 ISO_TOOL = ROOT / "imagine-tools" / "isobuilder"
@@ -50,7 +53,8 @@ def build_iso() -> Path:
     # Depois monta a árvore do ramfs (que compila o userland com dnu-pack disponível)
     tree = ramfs.build_tree()
 
-    # Finalmente empacota kernel + initramfs no dzImage
+    # Finalmente empacota o kernel no dzImage (apenas o kernel ELF, sem initramfs).
+    # O initramfs é gerado como arquivo separado (initrd).
     dzimage = kernel.build_dzimage(tree)
     isobuilder = build_isobuilder()
 
@@ -64,18 +68,43 @@ def build_iso() -> Path:
     config = LIMINE_DIR / "limine.conf"
     if not config.exists():
         fail(f"configuração do bootloader ausente: {config}")
+    print(f"[iso] Usando limine.conf: {config}", file=__import__('sys').stderr)
 
-    # O Limine carrega o ELF do kernel (membro kind=kernel do dzImage); o
-    # dzImage completo entra como módulo (tabela de membros + initramfs).
+    # O Limine carrega o ELF do kernel (gerado pelo build_kernel); o
+    # dzImage contém apenas o kernel ELF. O initrd e filesystem.tar são
+    # arquivos separados incluídos na ISO.
     ISO_DIR.mkdir(parents=True, exist_ok=True)
     kernel_elf = ISO_DIR / "kernel.elf"
-    kernel.dump_kernel(dzimage, kernel_elf)
+    kernel_path = DNU_DIR / "target" / TARGET / "release" / "imagineos-dnu-kernel"
+    if not kernel_path.exists():
+        fail(f"kernel ELF não encontrado: {kernel_path}")
+    shutil.copy2(kernel_path, kernel_elf)
+
+    # Copia o initrd e o filesystem.tar para o diretório ISO
+    initrd_src = BUILD_DIR / "initrd"
+    filesystem_tar_src = BUILD_DIR / "filesystem.tar"
+
+    if not initrd_src.exists():
+        fail(f"initrd não encontrado: {initrd_src}")
+    if not filesystem_tar_src.exists():
+        fail(f"filesystem.tar não encontrado: {filesystem_tar_src}")
+
+    initrd_dst = ISO_DIR / "initrd"
+    filesystem_tar_dst = ISO_DIR / "filesystem.tar"
+    shutil.copy2(initrd_src, initrd_dst)
+    shutil.copy2(filesystem_tar_src, filesystem_tar_dst)
+
+    print(f"[iso] dzImage: {DZ_IMAGE} ({DZ_IMAGE.stat().st_size} bytes)")
+    print(f"[iso] initrd:  {initrd_dst} ({initrd_dst.stat().st_size} bytes)")
+    print(f"[iso] filesystem.tar: {filesystem_tar_dst} ({filesystem_tar_dst.stat().st_size} bytes)")
 
     ISO_IMAGE.parent.mkdir(parents=True, exist_ok=True)
-    env = {"PATH": f"{kernel.DNU_BUILD}:{os.environ.get('PATH', '')}"}
+    env = {"PATH": f"{kernel.DNU_BUILD}/tools:{os.environ.get('PATH', '')}"}
     run([str(isobuilder),
          "--dzimage", str(dzimage),
          "--kernel", str(kernel_elf),
+         "--initrd", str(initrd_dst),
+         "--filesystem-tar", str(filesystem_tar_dst),
          "--bootloader", str(bootloader),
          "--config", str(config),
          "--output", str(ISO_IMAGE)],

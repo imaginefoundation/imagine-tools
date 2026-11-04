@@ -26,8 +26,6 @@ from .common import (  # noqa: E402
     BUILD_DIR,
     DNU_DIR,
     DNU_PACK_BIN,
-    DNULINK_BIN,
-    DFS_IMAGE_BIN,
     check_tool,
     host_cargo,
 )
@@ -38,14 +36,14 @@ RUST_EXAMPLE = ROOT / "examples" / "rust-hello"
 RUST_STD_EXAMPLE = ROOT / "examples" / "rust-std-hello"
 CARGO_DREAMCORE_DIR = Path.home() / ".cargo" / "dreamcore"
 
-TOOLS = [DNU_PACK_BIN, DNULINK_BIN, DFS_IMAGE_BIN]
+TOOLS = [DNU_PACK_BIN]
 
 
 def promote() -> None:
     """Constrói as ferramentas do DNU e as copia para .build/."""
     require_dnu()
     check_tool("make", hint="apt install build-essential")
-    print("== construindo ferramentas do DNU (dnu-pack, dnulink, dfs-image)")
+    print("== construindo ferramentas do DNU (dzimage, dnudebug, dnutest, dnuboot, dnu_pack)")
     subprocess.run(["make", "-C", DNU_DIR, "tools"], check=True)
     BUILD_DIR.mkdir(parents=True, exist_ok=True)
     for src in TOOLS:
@@ -57,14 +55,14 @@ def promote() -> None:
 
 
 def dnulink() -> Path:
-    """Garante que .build/dnulink existe e o devolve."""
-    if DNULINK_BIN.exists():
-        return DNULINK_BIN
+    """Garante que .build/dnu_pack existe e o devolve (substitui o antigo dnulink)."""
+    if DNU_PACK_BIN.exists():
+        return DNU_PACK_BIN
     promote()
-    if not DNULINK_BIN.exists():
-        print("erro: dnulink não foi produzido", file=sys.stderr)
+    if not DNU_PACK_BIN.exists():
+        print("erro: dnu_pack não foi produzido", file=sys.stderr)
         raise SystemExit(1)
-    return DNULINK_BIN
+    return DNU_PACK_BIN
 
 
 def musl() -> None:
@@ -108,7 +106,7 @@ def rust_target() -> None:
         raise SystemExit(1)
     check_tool("rustc")
     CARGO_DREAMCORE_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(DNULINK_BIN, CARGO_DREAMCORE_DIR / "dnulink")
+    shutil.copy2(DNU_PACK_BIN, CARGO_DREAMCORE_DIR / "dnulink")
     print(f"   -> {CARGO_DREAMCORE_DIR / 'dnulink'}")
     result = subprocess.run(
         ["rustc", "+nightly", "--target", str(RUST_TARGET),

@@ -127,7 +127,7 @@ lto = true
 codegen-units = 1
 
 [dependencies]
-imagineos = {{ path = "{USER_API_DIR}", package = "imagineos-userland" }}
+imagineos = {{ path = "{USER_API_DIR}" }}
 imagineos_rt = {{ path = "{USER_RUNTIME_DIR}", package = "imagineos-rt" }}
 """
     (crate_dir / "Cargo.toml").write_text(manifest)
@@ -207,8 +207,7 @@ def build_main_programs() -> dict[str, Path]:
     """Compila init, getty, shell e a stack Liminal em DEF."""
     results = {}
     single_file_apps = [
-        (PROGRAMS_DIR / "login" / "getty.rs", "sbin", "getty"),
-        (PROGRAMS_DIR / "sysman" / "init.rs", "sbin", "init"),
+        (COMMON_LEGACY_DIR / "init" / "init.rs", "sbin", "init"),
     ]
     for source, subdir, name in single_file_apps:
         if not source.exists():
@@ -216,13 +215,27 @@ def build_main_programs() -> dict[str, Path]:
             continue
         elf = USER_DIR / subdir / f"{name}.elf"
         target = USER_DIR / subdir / name
-        if tree_newer(source, elf) or not target.exists():
+        needs_build = tree_newer(source, elf) or not target.exists()
+        print(f"DEBUG: {name}: tree_newer={needs_build}, elf_exists={elf.exists()}, target_exists={target.exists()}")
+        if needs_build or not target.exists():
+            print(f"DEBUG: compilando e empacotando {name}")
             compile_rust_program(source, name, elf)
             pack_def(elf, target)
+            print(f"DEBUG: {name} empacotado")
+        else:
+            print(f"DEBUG: {name} já está atualizado, pulando")
         results[name] = target
     multi_module_apps = []
     if PROGRAMS_SHELL_DIR and PROGRAMS_SHELL_DIR.exists():
         multi_module_apps.append((PROGRAMS_SHELL_DIR, "bin", "shell"))
+    # Servidor de janelas/compositor em userspace.
+    GUI_DIR = COMMON_LEGACY_DIR / "gui"
+    if GUI_DIR.exists():
+        multi_module_apps.append((GUI_DIR, "bin", "ws_server"))
+    # Shell gráfico.
+    EXPLORER_DIR = COMMON_LEGACY_DIR / "explorer"
+    if EXPLORER_DIR.exists():
+        multi_module_apps.append((EXPLORER_DIR, "bin", "explorer"))
     if PROGRAMS_LIMINAL_SERVER_DIR and PROGRAMS_LIMINAL_SERVER_DIR.exists():
         multi_module_apps.append((PROGRAMS_LIMINAL_SERVER_DIR, "bin", "liminal-server"))
     if PROGRAMS_LIMINAL_CLIENT_DIR and PROGRAMS_LIMINAL_CLIENT_DIR.exists():
@@ -272,15 +285,11 @@ def build_c_utility(name: str) -> Path:
 
 def build_all() -> dict[str, object]:
     """Compila tudo que entra na árvore do ramfs."""
-    print("== userland: programas principais (init, getty, shell, liminal)")
+    print("== userland: programas principais (init, shell, explorer, ws_server)")
     programs = build_main_programs()
-    print("== userland: utilitários Rust")
-    utilities = build_rust_utilities()
-    print("== userland: utilitários C")
-    c_utilities = [build_c_utility(name) for name in USER_C_UTILITIES]
     print("== userland: libc estática")
     compile_libc()
-    return {"programs": programs, "utilities": utilities, "c_utilities": c_utilities}
+    return {"programs": programs, "utilities": {}, "c_utilities": []}
 
 
 def main() -> int:
