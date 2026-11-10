@@ -127,6 +127,7 @@ lto = true
 codegen-units = 1
 
 [dependencies]
+dnu-abi = {{ path = "{ROOT}/dnu/abi" }}
 imagineos = {{ path = "{USER_API_DIR}" }}
 imagineos_rt = {{ path = "{USER_RUNTIME_DIR}", package = "imagineos-rt" }}
 """

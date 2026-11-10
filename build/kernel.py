@@ -102,9 +102,10 @@ def build_dzimage(ramfs_tree: Path) -> Path:
             f"/sbin/init não encontrado na árvore do RAMFS ({ramfs_tree}).\n"
             "  rode a etapa de userland antes do kernel: python3 build.py userland"
         )
-    # O dzImage deve conter APENAS o kernel ELF, sem initramfs.
-    # O initramfs é gerado como arquivo separado (initrd).
-    run(["make", "dzImage", f"RAMFS_DIR="], cwd=DNU_DIR)
+    # O dzImage contém o kernel ELF mais o initramfs (quando RAMFS_DIR é
+    # informado), para que o kernel possa montar o RAMFS no boot e executar
+    # /sbin/init como PID 1.
+    run(["make", "dzImage", f"RAMFS_DIR={ramfs_tree}"], cwd=DNU_DIR)
     dzimage = DNU_BUILD / "dzImage"
     if not dzimage.exists():
         fail("dzImage não foi gerado pelo DNU")
